@@ -10,11 +10,11 @@ Build
 -------------------
 ### Linux
   I wrote all of this on openSUSE, thus Linux users are able to build it easily.
-        make
+    make
   Just that easy! But you will fail without libGL, libGLU, libglut and libfreetype's devel vers.
   Note: if you installed both freetype and freetype2, you may meet some collision error.
-        mv /usr/include/freetype2/freetype/ /usr/include/freetype2/freetype_bak/
-        ln -s /usr/include/freetype2/freetype/ /usr/include/freetype/
+    mv /usr/include/freetype2/freetype/ /usr/include/freetype2/freetype_bak/
+    ln -s /usr/include/freetype2/freetype/ /usr/include/freetype/
   That's harmless, in my opnion. :)
 
 ### Win32
