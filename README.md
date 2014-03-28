@@ -27,11 +27,6 @@ Build
 ### MacOS
   I will try to borrow a MacBook and finish this job. XD<br/>
 
-Rule
+Game Rule
 -------------------
-  Compete with AI, you should eat more and live longer than others.<br/>
-
-Copyright
--------------------
-  MewCatcher all rights reserved.<br/>
-  All the sources are under LGPL. :)<br/>
+  Compete with AI, you should eat more and live longer than other AIs.<br/>
