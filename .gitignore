@@ -1,0 +1,6 @@
+# file ignored
+*.o
+
+# folder ignored
+build/
+
