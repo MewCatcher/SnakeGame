@@ -16,13 +16,6 @@ Build
   Just that easy! But you will fail without libGL, libGLU, libglut and libfreetype's devel vers.<br/>
   So, REMEMBER to prepare the libs above!<br/><br/>
 
-  Additionally, Freetype used a Truetype font by path, so you have to do:
-
-        cd build
-        ./SnakeGame
-
-  Or, just double-click the "./build/SnakeGame" to run.<br/><br/>
-
   Note: if you installed both freetype and freetype2,
   you may meet some collision error: CANNOT FIND <ftheader.h>...<br/>
 

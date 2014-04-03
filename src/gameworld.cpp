@@ -563,7 +563,7 @@ void GameWorld::UpdateWorld_GameScreen( )
     
     /* Draw text */
     freetype::font_data our_font;
-    our_font.init( "comic.ttf", 40 );
+    our_font.init( "./comic.ttf", 40 );
     
     // ****************************************
     // The following formula was calc by me...
