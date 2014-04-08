@@ -6,14 +6,11 @@
  **/
 
 #include "gameworld.h"
-#include "freetype.h"
 #include "main.h"
+#include "freetype.h"
 #include <iostream>
-#include <cstdlib>
 #include <cstring>
-#include <ctime>
 using namespace std;
-
 
 GameWorld::GameWorld( )
 {
@@ -21,11 +18,6 @@ GameWorld::GameWorld( )
     GameSpeed = GAMESPEED;
     CurrentPlayer = 0;
     GameStatus = 0;
-    StatusID = 0;
-    CurrentAILevel = 1;
-    ThingPos[ 0 ][ 0 ] = ThingPos[ 0 ][ 1 ] = ThingPos[ 1 ][ 0 ] = ThingPos[ 1 ][ 1 ]
-                       = ThingPos[ 2 ][ 0 ] = ThingPos[ 2 ][ 1 ] = 0; // Thing initial
-    srand( time( NULL ) ); 
     
     /* Generate game world table */
     WorldTable = new unsigned char * [ Pixel ];
@@ -47,9 +39,6 @@ GameWorld::~GameWorld( )
     for( int i = 0; i < Pixel; i ++ )
         delete [ ] WorldTable[ i ];
     delete [ ] *WorldTable;
-    
-    //for( int i = 1; i < CurrentPlayer; i ++ )
-    //    delete AISnake[ i ];
     
     return;
 }
@@ -91,14 +80,11 @@ void GameWorld::startGame( )
     }
     
     for( int i = 0; i < CurrentPlayer_save; i ++ ) {
-        //if( AISnake[ i ] ) delete AISnake[ i ];
-        //AISnake[ i ] = new AISnake( addSnake( ), gw, CurrentAILevel );
         addSnake( );
         SnakeStatus[ i ] = true;
     }
     
     // 0 - Not begin; 1 - In process; 2 - Win; 3 - Lose; 4 - Pause;
-    addNewThing( );
     GameStatus = 1;
     
     return;
@@ -113,7 +99,6 @@ void GameWorld::PauseOrResume( )
 
 int GameWorld::addSnake( )
 {
-    if( CurrentPlayer >= MaxSnake ) return MaxSnake - 1; // as the last one
     int id = CurrentPlayer ++;
     
     SnakeHeadPos[ id ][ 2 ] = 3;          // right direction
@@ -143,7 +128,7 @@ void GameWorld::goNextStatus( )
         if( i != 0 && !SnakeStatus[ i ] ) continue;
         if( i == 0 && !SnakeStatus[ i ] ) break; // Player death
         
-        deleteTail( i, true );
+        deleteTail( i );
         
         /* Set body */
         switch( SnakeHeadPos[ i ][ 2 ] ) {
@@ -196,8 +181,6 @@ void GameWorld::goNextStatus( )
             break;
             
         case 0x80: // Thing A // blue
-        case 0xA0: // Thing B // green
-        case 0xC0: // Thing C // red
             switch( SnakeHeadPos[ i ][ 2 ] ) {
             case 0: // point to right
                 WorldTable[ SnakeHeadPos[ i ][ 0 ] ][ SnakeHeadPos[ i ][ 1 ] ]
@@ -218,8 +201,15 @@ void GameWorld::goNextStatus( )
             default:
                 break;
             }
-            deleteTail( i, false );
-            addNewThing( ); // Thing A/B/C was eaten
+            addNewThing( ); // Thing A was eaten
+            break;
+            
+        case 0xA0: // Thing B // green
+            
+            break;
+            
+        case 0xC0: // Thing C // red
+            
             break;
             
         default: // send death message
@@ -231,17 +221,8 @@ void GameWorld::goNextStatus( )
     return;
 }
 
-void GameWorld::deleteTail( int id, bool backup )
+void GameWorld::deleteTail( int id )
 {
-    static int x_backup = 0, y_backup = 0, x_previous_backup = 0, y_previous_backup = 0;
-    static unsigned char value_backup = 0x00, value_previous_backup = 0x00;
-    
-    if( !backup ) { // restore
-        WorldTable[ x_backup ][ y_backup ] = value_backup;
-        WorldTable[ x_previous_backup ][ y_previous_backup ] = value_previous_backup;
-        return;
-    }
-    
     int temp_x = SnakeHeadPos[ id ][ 0 ];
     int temp_y = SnakeHeadPos[ id ][ 1 ];
     
@@ -259,9 +240,6 @@ void GameWorld::deleteTail( int id, bool backup )
         case 0x00: // back left
             temp_x --;//cerr<<"1:x:"<<temp_x<<endl;
             if( ( WorldTable[ temp_x ][ temp_y ] & 0xE0 ) == 0x60 ) { // set
-                x_previous_backup = temp_x + 1;
-                y_previous_backup = temp_y;
-                value_previous_backup = WorldTable[ x_previous_backup ][ y_previous_backup ];
                 WorldTable[ temp_x + 1 ][ temp_y ] &= 0x1F;
                 WorldTable[ temp_x + 1 ][ temp_y ] |= 0x60;
             }
@@ -269,9 +247,6 @@ void GameWorld::deleteTail( int id, bool backup )
         case 0x01: // down
             temp_y --;//cerr<<"2:y:"<<temp_y<<endl;
             if( ( WorldTable[ temp_x ][ temp_y ] & 0xE0 ) == 0x60 ) { // set
-                x_previous_backup = temp_x;
-                y_previous_backup = temp_y + 1;
-                value_previous_backup = WorldTable[ x_previous_backup ][ y_previous_backup ];
                 WorldTable[ temp_x ][ temp_y + 1 ] &= 0x1F;
                 WorldTable[ temp_x ][ temp_y + 1 ] |= 0x60;
             }
@@ -279,9 +254,6 @@ void GameWorld::deleteTail( int id, bool backup )
         case 0x02: // up
             temp_y ++;//cerr<<"3:y:"<<temp_y<<endl;
             if( ( WorldTable[ temp_x ][ temp_y ] & 0xE0 ) == 0x60 ) { // set
-                x_previous_backup = temp_x;
-                y_previous_backup = temp_y - 1;
-                value_previous_backup = WorldTable[ x_previous_backup ][ y_previous_backup ];
                 WorldTable[ temp_x ][ temp_y - 1 ] &= 0x1F;
                 WorldTable[ temp_x ][ temp_y - 1 ] |= 0x60;
             }
@@ -289,9 +261,6 @@ void GameWorld::deleteTail( int id, bool backup )
         case 0x03: // right
             temp_x ++;//cerr<<"4:x:"<<temp_x<<endl;
             if( ( WorldTable[ temp_x ][ temp_y ] & 0xE0 ) == 0x60 ) { // set
-                x_previous_backup = temp_x - 1;
-                y_previous_backup = temp_y;
-                value_previous_backup = WorldTable[ x_previous_backup ][ y_previous_backup ];
                 WorldTable[ temp_x - 1 ][ temp_y ] &= 0x1F;
                 WorldTable[ temp_x - 1 ][ temp_y ] |= 0x60;
             }
@@ -302,9 +271,10 @@ void GameWorld::deleteTail( int id, bool backup )
     //cerr << hex << (unsigned int)( WorldTable[ temp_x ][ temp_y ] & 0xE0 ) << dec<< endl;
     }
     
-    x_backup = temp_x;
-    y_backup = temp_y;
-    value_backup = WorldTable[ temp_x ][ temp_y ];
+    if( 0 ) {
+        
+    }
+    
     WorldTable[ temp_x ][ temp_y ] = 0;
     return;
 }
@@ -371,92 +341,15 @@ void GameWorld::gameEnd( int id )
 
 void GameWorld::addNewThing( )
 {
-    for( int i = 0; i < 3; i ++ ) {
-        switch( WorldTable[ ThingPos[ i ][ 0 ] ][ ThingPos[ i ][ 1 ] ] & 0xE0 ) {
-        case 0x80:
-        case 0xA0:
-        case 0xC0:
-            break;
-        default:
-            int loopSize = 0, r;
-            for( int j = 1; j < Pixel - 1; j ++ )
-                for( int k = 1; k < Pixel - 1; k ++ )
-                    if( ( WorldTable[ j ][ k ] & 0xE0 ) == 0x00 ) loopSize ++; // get loop size
-                    
-            if( !loopSize ) goto ENDWHILE; // no space
-            
-            r = getRandomValue( 0, loopSize );
-            while( r >= 0 ) {
-                for( int j = 1; j < Pixel - 1; j ++ ) {
-                    for( int k = 1; k < Pixel - 1; k ++ ) {
-                        if( ( WorldTable[ j ][ k ] & 0xE0 ) == 0x00 && ( r -- == 0 ) ) {
-                            ThingPos[ i ][ 0 ] = j;
-                            ThingPos[ i ][ 1 ] = k;
-                            WorldTable[ j ][ k ] =  (unsigned char)( i + 4 ) << 5;
-                            goto ENDWHILE; // break the loop
-                        }
-                    }
-                }
-            }
-            ENDWHILE: ;
-            break;
-        }
-    }
     return;
 }
 
-
-/****************************************
- * 
- * Functions for get world information
- * 
- ****************************************/
 float GameWorld::getGameSpeed( ) const
 {
     return GameSpeed;
 }
-long long GameWorld::getStatusID( ) const
-{
-    return StatusID;
-}
-int GameWorld::getMaxSnake( ) const
-{
-    return MaxSnake;
-}
-
-int GameWorld::getMapWidth( ) const
-{
-    return width;
-}
-int GameWorld::getMapHeight( ) const
-{
-    return height;
-}
-int GameWorld::getHeadX( int id ) const
-{
-    return SnakeHeadPos[ id ][ 0 ];
-}
-int GameWorld::getHeadY( int id ) const
-{
-    return SnakeHeadPos[ id ][ 1 ];
-}
-int GameWorld::getHeadDir( int id ) const
-{
-    return SnakeHeadPos[ id ][ 2 ];
-}
-
-unsigned char GameWorld::getValue( int x, int y ) const
-{
-    if( x < 0 || x > width || y < 0 || y > height ) return 0; // fail
-    else return WorldTable[ x ][ y ];
-}
 
 
-/****************************************
- * 
- * Screen for update
- * 
- ****************************************/
 
 void GameWorld::UpdateWorld_MainScreen( )
 {
@@ -465,6 +358,12 @@ void GameWorld::UpdateWorld_MainScreen( )
 
 void GameWorld::UpdateWorld_GameScreen( )
 {
+    static long long count = 0;
+    static bool inUpdating = false; // Prevent multi-calling this funtion
+    
+    if( inUpdating ) return;
+    else inUpdating = true;
+    
     /* Clear background */
     glClear( GL_COLOR_BUFFER_BIT );
     
@@ -484,6 +383,69 @@ void GameWorld::UpdateWorld_GameScreen( )
             }
         }
     }*/
+    
+    
+    /* Draw text */
+    freetype::font_data our_font;
+    our_font.init( "comic.ttf", 40 );
+    
+    // ****************************************
+    // The following formula was calc by me...
+    // ****************************************
+    glColor3ub(0xff,0xff,0xff);
+    glPushMatrix();
+    //glLoadIdentity();
+    glScalef( 10.0 * glutGet( GLUT_WINDOW_WIDTH ) / 600 * ( (Pixel+WordsHeight) / 52.0 ),
+              10.0 * glutGet( GLUT_WINDOW_HEIGHT ) / ( 600 / Pixel * ( Pixel + WordsHeight ) ) * WordsHeight / 2, 1 );
+    //glTranslatef( 10, 790.0, 0 );
+    freetype::print( our_font, 10.0 * glutGet( GLUT_WINDOW_WIDTH ) / 600,
+                     606.0 * glutGet( GLUT_WINDOW_HEIGHT ) / ( 600 / Pixel * ( Pixel + WordsHeight ) ),
+                     "Refreshed: % 10lld time(s)", ++ count );
+    glPopMatrix();
+    
+    // GameStatus
+    glPushMatrix();
+    char StatusWord[ 100 ];
+    switch( GameStatus ) {
+    case 0:
+        glColor3ub( 0xFF, 0x00, 0x00 );
+        strcpy( StatusWord, "Not start.\nSpace to start~" );
+        break;
+    case 1:
+        glColor3ub( 0xFF, 0xFF, 0xFF );
+        strcpy( StatusWord, "In process." );
+        break;
+    case 2:
+        glColor3ub( 0x00, 0xFF, 0x00 );
+        strcpy( StatusWord, "YOU WIN!!\nPress \'R\' to retry~" );
+        break;
+    case 3:
+        glColor3ub( 0x00, 0x00, 0xFF );
+        strcpy( StatusWord, "- You lost -\nPress \'R\' to retry~" );
+        break;
+    case 4:
+        glColor3ub( 0xFF, 0xFF, 0x00 );
+        strcpy( StatusWord, "(Game Paused)" );
+        break;
+    default:
+        glColor3ub( 0xFF, 0x00, 0x00 );
+        strcpy( StatusWord, "- ERROR -" );
+        break;
+    }
+    glScalef( 10.0 * glutGet( GLUT_WINDOW_WIDTH ) / 600 * ( (Pixel+WordsHeight) / 52.0 ),
+              10.0 * glutGet( GLUT_WINDOW_HEIGHT ) / ( 600 / Pixel * ( Pixel + WordsHeight ) ) * WordsHeight / 2, 1 );
+    freetype::print( our_font, 350.0 * glutGet( GLUT_WINDOW_WIDTH ) / 600,
+                     606.0 * glutGet( GLUT_WINDOW_HEIGHT ) / ( 600 / Pixel * ( Pixel + WordsHeight ) ),
+                     "Status: %s", StatusWord );
+    glPopMatrix();
+    
+    /*glPushMatrix();
+    //glLoadIdentity();
+    ///glTranslatef( 0, Pixel , 0 );
+    glScalef(20,20,20);
+    freetype::print(our_font, 0.0, 0.0, "Changed: %d time(s)", count );
+    glPopMatrix();*/
+    our_font.clean(); // IMPORTANT
     
     
     /* Draw Snakes */
@@ -508,7 +470,7 @@ void GameWorld::UpdateWorld_GameScreen( )
                     glEnd();
                     break;
                 case 0x01: // Down
-                    glBegin(GL_TRIANGLES);
+                    glBegin(GL_TRIANGLES);  
                     glVertex2f( i + 0.5, j + 0.1 );
                     glVertex2f( i + 0.1, j + 1.0 - 0.1 );
                     glVertex2f( i + 1.0 - 0.1, j + 1.0 - 0.1 );
@@ -559,83 +521,9 @@ void GameWorld::UpdateWorld_GameScreen( )
             }
         }
     }
-    
-    
-    /* Draw text */
-    freetype::font_data our_font;
-    our_font.init( "./comic.ttf", 40 );
-    
-    // ****************************************
-    // The following formula was calc by me...
-    // ****************************************
-    glColor3ub(0xff,0xff,0xff);
-    glPushMatrix();
-    //glLoadIdentity();
-    glScalef( 10.0 * glutGet( GLUT_WINDOW_WIDTH ) / 600 * ( (Pixel+WordsHeight) / 52.0 ),
-              10.0 * glutGet( GLUT_WINDOW_HEIGHT ) / ( 600 / Pixel * ( Pixel + WordsHeight ) ) * WordsHeight / 2, 1 );
-    //glTranslatef( 10, 790.0, 0 );
-    freetype::print( our_font, 10.0 * glutGet( GLUT_WINDOW_WIDTH ) / 600,
-                     606.0 * glutGet( GLUT_WINDOW_HEIGHT ) / ( 600 / Pixel * ( Pixel + WordsHeight ) ),
-                     "Refreshed: % 10lld time(s)", ++ StatusID );
-    glPopMatrix();
-    
-    // GameStatus
-    glPushMatrix();
-    char StatusWord[ 100 ];
-    switch( GameStatus ) {
-    case 0:
-        glColor3ub( 0xFF, 0x00, 0x00 );
-        strcpy( StatusWord, "Not start.\nSpace to start~" );
-        break;
-    case 1:
-        glColor3ub( 0xFF, 0xFF, 0xFF );
-        strcpy( StatusWord, "In process." );
-        break;
-    case 2:
-        glColor3ub( 0x00, 0xFF, 0x00 );
-        strcpy( StatusWord, "YOU WIN!!\nPress \'R\' to retry~" );
-        break;
-    case 3:
-        glColor3ub( 0x00, 0x00, 0xFF );
-        strcpy( StatusWord, "- You lost -\nPress \'R\' to retry~" );
-        break;
-    case 4:
-        glColor3ub( 0xFF, 0xFF, 0x00 );
-        strcpy( StatusWord, "(Game Paused)" );
-        break;
-    default:
-        glColor3ub( 0xFF, 0x00, 0x00 );
-        strcpy( StatusWord, "- ERROR -" );
-        break;
-    }
-    glScalef( 10.0 * glutGet( GLUT_WINDOW_WIDTH ) / 600 * ( (Pixel+WordsHeight) / 52.0 ),
-              10.0 * glutGet( GLUT_WINDOW_HEIGHT ) / ( 600 / Pixel * ( Pixel + WordsHeight ) ) * WordsHeight / 2, 1 );
-    freetype::print( our_font, 350.0 * glutGet( GLUT_WINDOW_WIDTH ) / 600,
-                     606.0 * glutGet( GLUT_WINDOW_HEIGHT ) / ( 600 / Pixel * ( Pixel + WordsHeight ) ),
-                     "Status: %s", StatusWord );
-    glPopMatrix();
-    
-    /*glPushMatrix();
-    //glLoadIdentity();
-    ///glTranslatef( 0, Pixel , 0 );
-    glScalef(20,20,20);
-    freetype::print(our_font, 0.0, 0.0, "Changed: %d time(s)", StatusID );
-    glPopMatrix();*/
-    our_font.clean(); // IMPORTANT
 
-    
     glutSwapBuffers( );
+    inUpdating = false;
     
     return;
-}
-
-
-/****************************************
- * 
- * Util function
- * 
- ****************************************/
-int GameWorld::getRandomValue( int m, int n ) const
-{
-    return rand() % ( n - m + 1 );
 }
