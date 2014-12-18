@@ -1,25 +1,28 @@
+CC = g++
+CFLAGS = -Wall -O2 -I/usr/include/freetype2 -I/usr/include/freetype -c
+
 default: SnakeGame
 
-SnakeGame: src/main.o src/gameworld.o src/freetype.o src/snake.o src/snakeai.o
+SnakeGame: main.o gameworld.o freetype.o snake.o snakeai.o
+	rm -rf build
 	mkdir build
 	cp src/comic.ttf build/comic.ttf
-	g++ src/main.o src/gameworld.o src/freetype.o src/snake.o src/snakeai.o \
-		-o build/SnakeGame -lfreetype -lGL -lGLU -lglut
+	g++ src/main.o src/gameworld.o src/freetype.o src/snake.o src/snakeai.o -o build/SnakeGame -lfreetype -lGL -lGLU -lglut
 
-snake.o: snake.cpp snake.h gameworld.h
-	g++ -c src/snake.cpp -o src/snake.o
+snake.o: src/snake.cpp src/snake.h src/gameworld.h
+	$(CC) $(CFLAGS) -o src/snake.o src/snake.cpp
 
-snakeai.o: snakeai.cpp snakeai.h gameworld.h snake.h
-	g++ -c src/snakeai.cpp -o src/snakeai.o
+snakeai.o: src/snakeai.cpp src/snakeai.h src/gameworld.h src/snake.h
+	$(CC) $(CFLAGS) -o src/snakeai.o src/snakeai.cpp
 
-freetype.o: freetype.cpp freetype.h
-	g++ -c src/freetype.cpp -o src/freetype.o
+freetype.o: src/freetype.cpp src/freetype.h
+	$(CC) $(CFLAGS) -o src/freetype.o src/freetype.cpp
 
-gameworld.o: gameworld.cpp gameworld.h main.h freetype.h snakeai.h
-	g++ -c src/gameworld.cpp -o src/gameworld.o
+gameworld.o: src/gameworld.cpp src/gameworld.h src/main.h src/freetype.h src/snakeai.h
+	$(CC) $(CFLAGS) -o src/gameworld.o src/gameworld.cpp
 
-main.o: main.cpp main.h gameworld.h snake.h snakeai.h
-	g++ -c src/main.cpp -o src/main.o
+main.o: src/main.cpp src/main.h src/gameworld.h src/snake.h src/snakeai.h
+	$(CC) $(CFLAGS) -o src/main.o src/main.cpp
 
 clean:
 	rm -f src/*.o
